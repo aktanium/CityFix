@@ -4,14 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
 import android.location.LocationManager
-import android.os.Looper
-import com.google.android.gms.location.*
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 data class LatLng(val latitude: Double, val longitude: Double)
 
