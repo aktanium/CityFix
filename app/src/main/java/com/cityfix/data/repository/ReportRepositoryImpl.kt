@@ -3,8 +3,8 @@ package com.cityfix.data.repository
 import android.net.Uri
 import com.cityfix.data.local.dao.ReportDao
 import com.cityfix.domain.model.Report
+import com.cityfix.domain.repository.AuthRepository
 import com.cityfix.domain.repository.ReportRepository
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
@@ -21,7 +21,7 @@ class ReportRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val storage: FirebaseStorage,
     private val reportDao: ReportDao,
-    private val auth: FirebaseAuth
+    private val authRepository: AuthRepository
 ) : ReportRepository {
 
     override fun getAllReports(): Flow<List<Report>> = callbackFlow {
@@ -55,9 +55,10 @@ class ReportRepositoryImpl @Inject constructor(
 
     override suspend fun createReport(report: Report, imageUri: Uri?): String {
         val imageUrl = imageUri?.let { uploadImage(it, report.id) } ?: ""
+        val firebaseUser = authRepository.currentUser.first()
         val final = report.copy(
-            userId = auth.currentUser?.uid ?: "",
-            authorEmail = auth.currentUser?.email ?: "Anonymous",
+            userId = firebaseUser?.uid ?: "",
+            authorEmail = firebaseUser?.email ?: "Anonymous",
             imageUri = imageUrl
         )
         firestore.collection("reports").document(final.id).set(final).await()

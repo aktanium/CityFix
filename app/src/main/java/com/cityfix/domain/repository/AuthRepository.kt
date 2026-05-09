@@ -1,12 +1,13 @@
 package com.cityfix.domain.repository
 
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.Flow
 
 interface AuthRepository {
-    val isLoggedIn: Flow<Boolean>
-    val currentUserId: Flow<Long?>
+    val currentUser: Flow<FirebaseUser?>
+    val currentUserId: String?
 
-    suspend fun login(email: String, password: String): Result<Unit>
-    suspend fun register(name: String, email: String, password: String): Result<Unit>
-    suspend fun logout()
+    suspend fun signIn(email: String, password: String): Result<Unit>
+    suspend fun register(email: String, password: String, name: String): Result<Unit>
+    suspend fun signOut()
 }

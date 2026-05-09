@@ -61,7 +61,5 @@ data class ReportStats(
 data class AppSettings(
     val isDarkMode: Boolean,
     val isNotificationsEnabled: Boolean,
-    val mapView: String,
-    val userName: String,
-    val userEmail: String
+    val mapView: String
 )

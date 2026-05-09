@@ -45,17 +45,6 @@ fun ProfileScreen(
         }
     }
 
-    if (uiState.isEditingProfile) {
-        EditProfileDialog(
-            name = uiState.editName,
-            email = uiState.editEmail,
-            onNameChanged = { viewModel.onEvent(ProfileEvent.EditNameChanged(it)) },
-            onEmailChanged = { viewModel.onEvent(ProfileEvent.EditEmailChanged(it)) },
-            onSave = { viewModel.onEvent(ProfileEvent.SaveProfile) },
-            onDismiss = { viewModel.onEvent(ProfileEvent.CancelEditProfile) }
-        )
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -81,8 +70,7 @@ fun ProfileScreen(
 
                 ProfileHeader(
                     name = uiState.userName,
-                    email = uiState.userEmail,
-                    onEdit = { viewModel.onEvent(ProfileEvent.StartEditProfile) }
+                    email = uiState.userEmail
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -199,39 +187,24 @@ fun ProfileScreen(
 @Composable
 private fun ProfileHeader(
     name: String,
-    email: String,
-    onEdit: () -> Unit
+    email: String
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(horizontal = 16.dp)
     ) {
-        Box {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-            ) {
-                Text(
-                    text = name.firstOrNull()?.uppercase() ?: "U",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-            FilledTonalIconButton(
-                onClick = onEdit,
-                modifier = Modifier
-                    .size(32.dp)
-                    .align(Alignment.BottomEnd)
-            ) {
-                Icon(
-                    Icons.Filled.Edit,
-                    contentDescription = "Edit profile",
-                    modifier = Modifier.size(16.dp)
-                )
-            }
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(96.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Text(
+                text = name.firstOrNull()?.uppercase() ?: "U",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -290,43 +263,3 @@ private fun ProfileMenuItem(
     }
 }
 
-@Composable
-private fun EditProfileDialog(
-    name: String,
-    email: String,
-    onNameChanged: (String) -> Unit,
-    onEmailChanged: (String) -> Unit,
-    onSave: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Edit Profile") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = onNameChanged,
-                    label = { Text("Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Filled.Person, null) }
-                )
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = onEmailChanged,
-                    label = { Text("Email") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Filled.Email, null) }
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = onSave) { Text("Save") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-}

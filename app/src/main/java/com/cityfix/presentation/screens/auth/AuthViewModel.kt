@@ -7,12 +7,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.userProfileChangeRequest
-import com.cityfix.data.datastore.AppPreferencesDataStore
 import javax.inject.Inject
 
 data class AuthUiState(
@@ -21,7 +19,9 @@ data class AuthUiState(
     val email: String = "",
     val password: String = "",
     val isSubmitting: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val registrationCompleted: Boolean = false,
+    val registrationMessage: String? = null
 )
 
 sealed interface AuthEvent {
@@ -31,28 +31,31 @@ sealed interface AuthEvent {
     data object SubmitLogin : AuthEvent
     data object SubmitRegister : AuthEvent
     data object ClearError : AuthEvent
+    data object RegistrationNavConsumed : AuthEvent
+    data object ClearRegistrationMessage : AuthEvent
 }
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val auth: FirebaseAuth,
-    private val preferences: AppPreferencesDataStore
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AuthUiState())
+    private val _uiState = MutableStateFlow(AuthUiState(isLoggedIn = isLoggedIn()))
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     init {
-        _uiState.update { it.copy(isLoggedIn = isLoggedIn()) }
+        authRepository.currentUser
+            .onEach { user ->
+                _uiState.update { it.copy(isLoggedIn = user != null) }
+            }
+            .launchIn(viewModelScope)
     }
 
-    fun isLoggedIn(): Boolean = auth.currentUser != null
+    fun isLoggedIn(): Boolean = authRepository.currentUserId != null
 
     fun logout() {
         viewModelScope.launch {
-            auth.signOut()
-            preferences.clearAll()
-            _uiState.update { it.copy(isLoggedIn = false) }
+            authRepository.signOut()
         }
     }
 
@@ -64,6 +67,8 @@ class AuthViewModel @Inject constructor(
             AuthEvent.SubmitLogin -> submitLogin()
             AuthEvent.SubmitRegister -> submitRegister()
             AuthEvent.ClearError -> _uiState.update { it.copy(error = null) }
+            AuthEvent.RegistrationNavConsumed -> _uiState.update { it.copy(registrationCompleted = false) }
+            AuthEvent.ClearRegistrationMessage -> _uiState.update { it.copy(registrationMessage = null) }
         }
     }
 
@@ -75,12 +80,17 @@ class AuthViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            try {
-                auth.signInWithEmailAndPassword(state.email, state.password).await()
-                _uiState.update { it.copy(isSubmitting = false, password = "", isLoggedIn = true) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isSubmitting = false, error = e.message ?: "Login failed") }
-            }
+            authRepository.signIn(state.email, state.password)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(isSubmitting = false, password = "", isLoggedIn = true)
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(isSubmitting = false, error = e.message ?: "Login failed")
+                    }
+                }
         }
     }
 
@@ -92,18 +102,23 @@ class AuthViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            try {
-                val result = auth.createUserWithEmailAndPassword(state.email, state.password).await()
-                val trimmedName = state.name.trim()
-                if (trimmedName.isNotEmpty()) {
-                    result.user?.updateProfile(
-                        userProfileChangeRequest { displayName = trimmedName }
-                    )?.await()
+            authRepository.register(state.email, state.password, state.name)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            password = "",
+                            isLoggedIn = false,
+                            registrationCompleted = true,
+                            registrationMessage = "Account created! Please sign in."
+                        )
+                    }
                 }
-                _uiState.update { it.copy(isSubmitting = false, password = "", isLoggedIn = true) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isSubmitting = false, error = e.message ?: "Register failed") }
-            }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(isSubmitting = false, error = e.message ?: "Register failed")
+                    }
+                }
         }
     }
 }

@@ -3,12 +3,10 @@ package com.cityfix.presentation.screens.add_report
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cityfix.domain.model.GeoLocation
 import com.cityfix.domain.model.Report
 import com.cityfix.domain.model.ReportCategory
-import com.cityfix.domain.model.ReportStatus
+import com.cityfix.domain.repository.AuthRepository
 import com.cityfix.domain.usecase.CreateReportUseCase
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -46,7 +44,7 @@ sealed interface AddReportEvent {
 @HiltViewModel
 class AddReportViewModel @Inject constructor(
     private val createReportUseCase: CreateReportUseCase,
-    private val auth: FirebaseAuth
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddReportUiState())
@@ -93,10 +91,9 @@ class AddReportViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
 
-            val currentUserId = auth.currentUser?.uid ?: ""
             val now = System.currentTimeMillis()
             val report = Report(
-                userId = currentUserId,
+                userId = authRepository.currentUserId.orEmpty(),
                 title = state.title.trim(),
                 description = state.description.trim(),
                 category = state.selectedCategory.name,

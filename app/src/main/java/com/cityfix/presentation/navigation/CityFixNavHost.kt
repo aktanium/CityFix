@@ -74,12 +74,17 @@ fun CityFixNavHost() {
     val startDestination = if (authViewModel.isLoggedIn()) NavRoutes.REPORT_LIST else NavRoutes.LOGIN
 
     LaunchedEffect(authState.isLoggedIn) {
+        val currentRoute = navController.currentDestination?.route
+        // Don't auto-navigate from Register: register completion has its own flow
+        // (sign out + send the user to Login with a confirmation message).
+        if (currentRoute == NavRoutes.REGISTER) return@LaunchedEffect
+
         if (authState.isLoggedIn) {
             navController.navigate(NavRoutes.REPORT_LIST) {
                 popUpTo(0) { inclusive = true }
                 launchSingleTop = true
             }
-        } else if (navController.currentDestination?.route != NavRoutes.LOGIN && navController.currentDestination?.route != NavRoutes.REGISTER) {
+        } else if (currentRoute != NavRoutes.LOGIN) {
             navController.navigate(NavRoutes.LOGIN) {
                 popUpTo(0) { inclusive = true }
                 launchSingleTop = true
@@ -144,7 +149,13 @@ fun CityFixNavHost() {
                 RegisterScreen(
                     uiState = authState,
                     onEvent = authViewModel::onEvent,
-                    onNavigateBack = { navController.navigateUp() }
+                    onNavigateBack = { navController.navigateUp() },
+                    onRegistrationComplete = {
+                        navController.navigate(NavRoutes.LOGIN) {
+                            popUpTo(NavRoutes.REGISTER) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
 
