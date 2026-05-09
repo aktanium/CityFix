@@ -2,16 +2,23 @@ package com.cityfix.domain.model
 
 import java.time.Instant
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import java.util.UUID
+
+@Entity(tableName = "reports")
 data class Report(
-    val id: Long = 0,
-    val title: String,
-    val description: String,
-    val category: ReportCategory,
-    val imageUri: String?,
-    val location: GeoLocation,
-    val status: ReportStatus,
-    val createdAt: Instant,
-    val updatedAt: Instant
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val userId: String = "",
+    val authorEmail: String = "",
+    val title: String = "",
+    val description: String = "",
+    val category: String = "",
+    val imageUri: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val status: String = "NEW",
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 data class GeoLocation(

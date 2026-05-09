@@ -2,8 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -29,7 +30,6 @@ android {
             )
         }
         debug {
-            applicationIdSuffix = ".debug"
             isDebuggable = true
         }
     }
@@ -96,6 +96,19 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
+
+    // Firebase
+    // Вариант 1 — через BOM (рекомендуется, версии управляются автоматически)
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    // Google Play Services Location (FusedLocationProviderClient)
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("androidx.compose.material:material-icons-extended")
+
 
     // Testing
     testImplementation(libs.junit)

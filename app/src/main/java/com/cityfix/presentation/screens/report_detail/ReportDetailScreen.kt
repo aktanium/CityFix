@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,10 +18,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.cityfix.domain.model.Report
+import com.cityfix.domain.model.ReportCategory
 import com.cityfix.domain.model.ReportStatus
 import com.cityfix.presentation.components.*
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +70,7 @@ fun ReportDetailScreen(
     if (showStatusDialog) {
         uiState.report?.let { report ->
             StatusUpdateDialog(
-                currentStatus = report.status,
+                currentStatus = ReportStatus.fromName(report.status),
                 onStatusSelected = {
                     viewModel.onEvent(ReportDetailEvent.UpdateStatus(it))
                     showStatusDialog = false
@@ -83,7 +86,7 @@ fun ReportDetailScreen(
                 title = { Text("Report Details") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -154,8 +157,8 @@ private fun ReportDetailContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CategoryIcon(category = report.category, size = 48)
-                StatusChip(status = report.status)
+                CategoryIcon(category = ReportCategory.fromName(report.category), size = 48)
+                StatusChip(status = ReportStatus.fromName(report.status))
             }
 
             Text(
@@ -205,24 +208,17 @@ private fun DetailInfoCard(report: Report) {
             InfoRow(
                 icon = Icons.Filled.Category,
                 label = "Category",
-                value = report.category.displayName
+                value = ReportCategory.fromName(report.category).displayName
             )
             InfoRow(
                 icon = Icons.Filled.LocationOn,
                 label = "Location",
-                value = "%.6f, %.6f".format(report.location.latitude, report.location.longitude)
+                value = "%.6f, %.6f".format(report.latitude, report.longitude)
             )
             InfoRow(
                 icon = Icons.Filled.CalendarToday,
                 label = "Reported",
-                value = report.createdAt
-                    .atZone(ZoneId.systemDefault())
-                    .format(DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' HH:mm"))
-            )
-            InfoRow(
-                icon = Icons.Filled.Update,
-                label = "Last Updated",
-                value = report.updatedAt
+                value = Instant.ofEpochMilli(report.createdAt)
                     .atZone(ZoneId.systemDefault())
                     .format(DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' HH:mm"))
             )

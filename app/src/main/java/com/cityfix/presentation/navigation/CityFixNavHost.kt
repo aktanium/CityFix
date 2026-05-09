@@ -10,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -17,11 +19,16 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.cityfix.presentation.screens.add_report.AddReportScreen
+import com.cityfix.presentation.screens.auth.AuthViewModel
+import com.cityfix.presentation.screens.auth.LoginScreen
+import com.cityfix.presentation.screens.auth.RegisterScreen
 import com.cityfix.presentation.screens.profile.ProfileScreen
 import com.cityfix.presentation.screens.report_detail.ReportDetailScreen
 import com.cityfix.presentation.screens.report_list.ReportListScreen
 import com.cityfix.presentation.screens.settings.SettingsScreen
 import com.cityfix.presentation.screens.splash.SplashScreen
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.outlined.List
 
 private data class BottomNavDestination(
     val route: String,
@@ -34,8 +41,8 @@ private val bottomNavDestinations = listOf(
     BottomNavDestination(
         route = NavRoutes.REPORT_LIST,
         label = "Reports",
-        selectedIcon = Icons.Filled.List,
-        unselectedIcon = Icons.Outlined.List
+        selectedIcon = Icons.AutoMirrored.Filled.List,
+        unselectedIcon = Icons.AutoMirrored.Outlined.List
     ),
     BottomNavDestination(
         route = NavRoutes.PROFILE,
@@ -53,8 +60,32 @@ private val bottomNavDestinations = listOf(
 
 @Composable
 fun CityFixNavHost() {
-    val navController = rememberNavController()
     var showSplash by remember { mutableStateOf(true) }
+
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
+
+    if (showSplash) {
+        SplashScreen(onSplashComplete = { showSplash = false })
+        return
+    }
+
+    val navController = rememberNavController()
+    val startDestination = if (authViewModel.isLoggedIn()) NavRoutes.REPORT_LIST else NavRoutes.LOGIN
+
+    LaunchedEffect(authState.isLoggedIn) {
+        if (authState.isLoggedIn) {
+            navController.navigate(NavRoutes.REPORT_LIST) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        } else if (navController.currentDestination?.route != NavRoutes.LOGIN && navController.currentDestination?.route != NavRoutes.REGISTER) {
+            navController.navigate(NavRoutes.LOGIN) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
 
     val bottomBarRoutes = setOf(
         NavRoutes.REPORT_LIST,
@@ -64,12 +95,7 @@ fun CityFixNavHost() {
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute in bottomBarRoutes
-
-    if (showSplash) {
-        SplashScreen(onSplashComplete = { showSplash = false })
-        return
-    }
+    val showBottomBar = currentRoute in bottomBarRoutes && authState.isLoggedIn
 
     Scaffold(
         bottomBar = {
@@ -80,7 +106,7 @@ fun CityFixNavHost() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = NavRoutes.REPORT_LIST,
+            startDestination = startDestination,
             modifier = Modifier.padding(paddingValues),
             enterTransition = {
                 slideInHorizontally(
@@ -107,6 +133,21 @@ fun CityFixNavHost() {
                 ) + fadeOut(animationSpec = tween(300))
             }
         ) {
+            composable(NavRoutes.LOGIN) {
+                LoginScreen(
+                    uiState = authState,
+                    onEvent = authViewModel::onEvent,
+                    onNavigateToRegister = { navController.navigate(NavRoutes.REGISTER) }
+                )
+            }
+            composable(NavRoutes.REGISTER) {
+                RegisterScreen(
+                    uiState = authState,
+                    onEvent = authViewModel::onEvent,
+                    onNavigateBack = { navController.navigateUp() }
+                )
+            }
+
             composable(NavRoutes.REPORT_LIST) {
                 ReportListScreen(
                     onReportClick = { reportId ->
@@ -127,7 +168,7 @@ fun CityFixNavHost() {
             composable(
                 route = NavRoutes.REPORT_DETAIL,
                 arguments = listOf(
-                    navArgument(NavArgs.REPORT_ID) { type = NavType.LongType }
+                    navArgument(NavArgs.REPORT_ID) { type = NavType.StringType }
                 )
             ) {
                 ReportDetailScreen(
@@ -136,7 +177,7 @@ fun CityFixNavHost() {
             }
 
             composable(NavRoutes.PROFILE) {
-                ProfileScreen()
+                ProfileScreen(navController = navController, authViewModel = authViewModel)
             }
 
             composable(NavRoutes.SETTINGS) {

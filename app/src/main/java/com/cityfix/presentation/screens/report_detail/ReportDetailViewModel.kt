@@ -36,7 +36,7 @@ class ReportDetailViewModel @Inject constructor(
     private val deleteReportUseCase: DeleteReportUseCase
 ) : ViewModel() {
 
-    private val reportId: Long = checkNotNull(savedStateHandle[NavArgs.REPORT_ID])
+    private val reportId: String = checkNotNull(savedStateHandle[NavArgs.REPORT_ID])
 
     private val _uiState = MutableStateFlow(ReportDetailUiState())
     val uiState: StateFlow<ReportDetailUiState> = _uiState.asStateFlow()
@@ -66,7 +66,7 @@ class ReportDetailViewModel @Inject constructor(
     private fun updateStatus(newStatus: ReportStatus) {
         val report = _uiState.value.report ?: return
         viewModelScope.launch {
-            updateReportStatusUseCase(report, newStatus)
+            updateReportStatusUseCase(report, newStatus.name)
                 .onSuccess {
                     _uiState.update { it.copy(snackbarMessage = "Status updated to ${newStatus.displayName}") }
                 }
