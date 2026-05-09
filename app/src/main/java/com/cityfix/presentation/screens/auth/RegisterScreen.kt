@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -14,8 +15,15 @@ import androidx.compose.ui.unit.dp
 fun RegisterScreen(
     uiState: AuthUiState,
     onEvent: (AuthEvent) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onRegistrationComplete: () -> Unit
 ) {
+    LaunchedEffect(uiState.registrationCompleted) {
+        if (uiState.registrationCompleted) {
+            onRegistrationComplete()
+            onEvent(AuthEvent.RegistrationNavConsumed)
+        }
+    }
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier

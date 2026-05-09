@@ -17,16 +17,12 @@ class SettingsRepositoryImpl @Inject constructor(
     override fun getAppSettings(): Flow<AppSettings> = combine(
         dataStore.isDarkMode,
         dataStore.isNotificationsEnabled,
-        dataStore.mapView,
-        dataStore.userName,
-        dataStore.userEmail
-    ) { darkMode, notifications, mapView, name, email ->
+        dataStore.mapView
+    ) { darkMode, notifications, mapView ->
         AppSettings(
             isDarkMode = darkMode,
             isNotificationsEnabled = notifications,
-            mapView = mapView,
-            userName = name,
-            userEmail = email
+            mapView = mapView
         )
     }
 
@@ -38,10 +34,4 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setMapView(preference: MapViewPreference) =
         dataStore.setMapView(preference)
-
-    override suspend fun setUserName(name: String) =
-        dataStore.setUserName(name)
-
-    override suspend fun setUserEmail(email: String) =
-        dataStore.setUserEmail(email)
 }
