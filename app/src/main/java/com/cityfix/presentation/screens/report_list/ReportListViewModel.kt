@@ -8,6 +8,7 @@ import com.cityfix.domain.model.ReportStatus
 import com.cityfix.domain.usecase.DeleteReportUseCase
 import com.cityfix.domain.usecase.GetFilteredReportsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,7 +26,7 @@ data class ReportListUiState(
 sealed interface ReportListEvent {
     data class FilterByCategory(val category: ReportCategory?) : ReportListEvent
     data class FilterByStatus(val status: ReportStatus?) : ReportListEvent
-    data class DeleteReport(val id: Long) : ReportListEvent
+    data class DeleteReport(val id: String) : ReportListEvent
     data object ShowFilterSheet : ReportListEvent
     data object HideFilterSheet : ReportListEvent
     data object ClearFilters : ReportListEvent
@@ -40,6 +41,8 @@ class ReportListViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(ReportListUiState())
     val uiState: StateFlow<ReportListUiState> = _uiState.asStateFlow()
+
+    private var observeJob: Job? = null
 
     init {
         observeReports()
@@ -58,13 +61,12 @@ class ReportListViewModel @Inject constructor(
     }
 
     private fun observeReports() {
-        viewModelScope.launch {
-            _uiState.flatMapLatest { state ->
-                getFilteredReportsUseCase(
-                    category = state.selectedCategory,
-                    status = state.selectedStatus
-                )
-            }.catch { e ->
+        observeJob?.cancel()
+        observeJob = viewModelScope.launch {
+            getFilteredReportsUseCase(
+                category = _uiState.value.selectedCategory?.name,
+                status = _uiState.value.selectedStatus?.name
+            ).catch { e ->
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
             }.collect { reports ->
                 _uiState.update { it.copy(reports = reports, isLoading = false, error = null) }
@@ -87,7 +89,7 @@ class ReportListViewModel @Inject constructor(
         observeReports()
     }
 
-    private fun deleteReport(id: Long) {
+    private fun deleteReport(id: String) {
         viewModelScope.launch {
             deleteReportUseCase(id)
                 .onSuccess { _uiState.update { it.copy(snackbarMessage = "Report deleted") } }

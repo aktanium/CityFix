@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,10 +24,16 @@ import com.cityfix.presentation.theme.StatusInProgress
 import com.cityfix.presentation.theme.StatusNew
 import com.cityfix.presentation.theme.StatusResolved
 
+import androidx.navigation.NavController
+import com.cityfix.presentation.navigation.NavRoutes
+import com.cityfix.presentation.screens.auth.AuthViewModel
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel = hiltViewModel()
+    viewModel: ProfileViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
+    navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -141,7 +149,7 @@ fun ProfileScreen(
                 ) {
                     Column {
                         ProfileMenuItem(
-                            icon = Icons.Filled.Help,
+                            icon = Icons.AutoMirrored.Filled.Help,
                             title = "Help & Support",
                             onClick = {}
                         )
@@ -159,6 +167,27 @@ fun ProfileScreen(
                             onClick = {}
                         )
                     }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = {
+                        authViewModel.logout()
+                        navController.navigate(NavRoutes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Logout")
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

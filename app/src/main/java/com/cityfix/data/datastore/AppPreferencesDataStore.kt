@@ -25,8 +25,11 @@ class AppPreferencesDataStore @Inject constructor(
         val DARK_MODE = booleanPreferencesKey("dark_mode")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
         val MAP_VIEW = stringPreferencesKey("map_view")
+        val USER_ID = androidx.datastore.preferences.core.longPreferencesKey("user_id")
         val USER_NAME = stringPreferencesKey("user_name")
         val USER_EMAIL = stringPreferencesKey("user_email")
+        val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+        val SESSION_EMAIL = stringPreferencesKey("session_email")
     }
 
     val isDarkMode: Flow<Boolean> = dataStore.data.map { prefs ->
@@ -49,6 +52,14 @@ class AppPreferencesDataStore @Inject constructor(
         prefs[Keys.USER_EMAIL] ?: ""
     }
 
+    val userId: Flow<Long?> = dataStore.data.map { prefs ->
+        prefs[Keys.USER_ID]
+    }
+
+    val isLoggedIn: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[Keys.IS_LOGGED_IN] ?: false
+    }
+
     suspend fun setDarkMode(enabled: Boolean) {
         dataStore.edit { prefs -> prefs[Keys.DARK_MODE] = enabled }
     }
@@ -67,6 +78,34 @@ class AppPreferencesDataStore @Inject constructor(
 
     suspend fun setUserEmail(email: String) {
         dataStore.edit { prefs -> prefs[Keys.USER_EMAIL] = email }
+    }
+
+    suspend fun setLoggedIn(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[Keys.IS_LOGGED_IN] = enabled }
+    }
+
+    suspend fun setSessionEmail(email: String?) {
+        dataStore.edit { prefs ->
+            if (email.isNullOrBlank()) {
+                prefs.remove(Keys.SESSION_EMAIL)
+            } else {
+                prefs[Keys.SESSION_EMAIL] = email
+            }
+        }
+    }
+
+    suspend fun setUserId(id: Long?) {
+        dataStore.edit { prefs ->
+            if (id == null) {
+                prefs.remove(Keys.USER_ID)
+            } else {
+                prefs[Keys.USER_ID] = id
+            }
+        }
+    }
+
+    suspend fun clearAll() {
+        dataStore.edit { it.clear() }
     }
 }
 

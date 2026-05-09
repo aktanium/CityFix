@@ -8,10 +8,10 @@ import com.cityfix.domain.model.Report
 import com.cityfix.domain.model.ReportCategory
 import com.cityfix.domain.model.ReportStatus
 import com.cityfix.domain.usecase.CreateReportUseCase
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.time.Instant
 import javax.inject.Inject
 
 data class AddReportUiState(
@@ -21,8 +21,11 @@ data class AddReportUiState(
     val imageUri: Uri? = null,
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
+    val hasLocation: Boolean = false,
+    val isFetchingLocation: Boolean = false,
     val titleError: String? = null,
     val descriptionError: String? = null,
+    val locationError: String? = null,
     val isSubmitting: Boolean = false,
     val isSubmitted: Boolean = false,
     val error: String? = null
@@ -34,13 +37,16 @@ sealed interface AddReportEvent {
     data class CategorySelected(val category: ReportCategory) : AddReportEvent
     data class ImageSelected(val uri: Uri?) : AddReportEvent
     data class LocationUpdated(val latitude: Double, val longitude: Double) : AddReportEvent
+    data object LocationFetchStarted : AddReportEvent
+    data class LocationFetchFailed(val message: String) : AddReportEvent
     data object Submit : AddReportEvent
     data object DismissError : AddReportEvent
 }
 
 @HiltViewModel
 class AddReportViewModel @Inject constructor(
-    private val createReportUseCase: CreateReportUseCase
+    private val createReportUseCase: CreateReportUseCase,
+    private val auth: FirebaseAuth
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddReportUiState())
@@ -61,7 +67,19 @@ class AddReportViewModel @Inject constructor(
                 it.copy(imageUri = event.uri)
             }
             is AddReportEvent.LocationUpdated -> _uiState.update {
-                it.copy(latitude = event.latitude, longitude = event.longitude)
+                it.copy(
+                    latitude = event.latitude,
+                    longitude = event.longitude,
+                    hasLocation = true,
+                    isFetchingLocation = false,
+                    locationError = null
+                )
+            }
+            AddReportEvent.LocationFetchStarted -> _uiState.update {
+                it.copy(isFetchingLocation = true, locationError = null)
+            }
+            is AddReportEvent.LocationFetchFailed -> _uiState.update {
+                it.copy(isFetchingLocation = false, locationError = event.message)
             }
             AddReportEvent.Submit -> submitReport()
             AddReportEvent.DismissError -> _uiState.update { it.copy(error = null) }
@@ -75,22 +93,21 @@ class AddReportViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
 
-            val now = Instant.now()
+            val currentUserId = auth.currentUser?.uid ?: ""
+            val now = System.currentTimeMillis()
             val report = Report(
+                userId = currentUserId,
                 title = state.title.trim(),
                 description = state.description.trim(),
-                category = state.selectedCategory,
-                imageUri = state.imageUri?.toString(),
-                location = GeoLocation(
-                    latitude = state.latitude,
-                    longitude = state.longitude
-                ),
-                status = ReportStatus.NEW,
-                createdAt = now,
-                updatedAt = now
+                category = state.selectedCategory.name,
+                imageUri = state.imageUri?.toString() ?: "",
+                latitude = state.latitude,
+                longitude = state.longitude,
+                status = "NEW",
+                createdAt = now
             )
 
-            createReportUseCase(report)
+            createReportUseCase(report, state.imageUri)
                 .onSuccess { _uiState.update { it.copy(isSubmitted = true, isSubmitting = false) } }
                 .onFailure { e ->
                     _uiState.update {
@@ -117,6 +134,11 @@ class AddReportViewModel @Inject constructor(
             isValid = false
         } else if (state.description.length < 10) {
             _uiState.update { it.copy(descriptionError = "Description must be at least 10 characters") }
+            isValid = false
+        }
+
+        if (!state.hasLocation) {
+            _uiState.update { it.copy(locationError = "Tap \"Get Location\" to attach your current position") }
             isValid = false
         }
 

@@ -1,8 +1,7 @@
 package com.cityfix.domain.usecase
 
+import android.net.Uri
 import com.cityfix.domain.model.Report
-import com.cityfix.domain.model.ReportCategory
-import com.cityfix.domain.model.ReportStatus
 import com.cityfix.domain.repository.ReportRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -16,32 +15,32 @@ class GetAllReportsUseCase @Inject constructor(
 class GetReportByIdUseCase @Inject constructor(
     private val repository: ReportRepository
 ) {
-    operator fun invoke(id: Long): Flow<Report?> = repository.getReportById(id)
+    operator fun invoke(id: String): Flow<Report?> = repository.getReportById(id)
 }
 
 class GetFilteredReportsUseCase @Inject constructor(
     private val repository: ReportRepository
 ) {
     operator fun invoke(
-        category: ReportCategory? = null,
-        status: ReportStatus? = null
+        category: String? = null,
+        status: String? = null
     ): Flow<List<Report>> = repository.getFilteredReports(category, status)
 }
 
 class CreateReportUseCase @Inject constructor(
     private val repository: ReportRepository
 ) {
-    suspend operator fun invoke(report: Report): Result<Long> = runCatching {
+    suspend operator fun invoke(report: Report, imageUri: Uri?): Result<String> = runCatching {
         require(report.title.isNotBlank()) { "Title cannot be empty" }
         require(report.description.isNotBlank()) { "Description cannot be empty" }
-        repository.createReport(report)
+        repository.createReport(report, imageUri)
     }
 }
 
 class UpdateReportStatusUseCase @Inject constructor(
     private val repository: ReportRepository
 ) {
-    suspend operator fun invoke(report: Report, newStatus: ReportStatus): Result<Unit> =
+    suspend operator fun invoke(report: Report, newStatus: String): Result<Unit> =
         runCatching {
             repository.updateReport(report.copy(status = newStatus))
         }
@@ -50,7 +49,7 @@ class UpdateReportStatusUseCase @Inject constructor(
 class DeleteReportUseCase @Inject constructor(
     private val repository: ReportRepository
 ) {
-    suspend operator fun invoke(id: Long): Result<Unit> = runCatching {
+    suspend operator fun invoke(id: String): Result<Unit> = runCatching {
         repository.deleteReport(id)
     }
 }

@@ -26,10 +26,12 @@ import com.cityfix.presentation.components.*
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+import java.time.Instant
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportListScreen(
-    onReportClick: (Long) -> Unit,
+    onReportClick: (String) -> Unit,
     onAddReport: () -> Unit,
     viewModel: ReportListViewModel = hiltViewModel()
 ) {
@@ -133,8 +135,8 @@ fun ReportListScreen(
 @Composable
 private fun ReportList(
     reports: List<Report>,
-    onReportClick: (Long) -> Unit,
-    onDeleteReport: (Long) -> Unit
+    onReportClick: (String) -> Unit,
+    onDeleteReport: (String) -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp),
@@ -217,7 +219,7 @@ fun ReportCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CategoryIcon(
-                        category = report.category,
+                        category = ReportCategory.fromName(report.category),
                         modifier = Modifier,
                         size = 40
                     )
@@ -225,7 +227,7 @@ fun ReportCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        StatusChip(status = report.status)
+                        StatusChip(status = ReportStatus.fromName(report.status))
                         IconButton(
                             onClick = { showDeleteDialog = true },
                             modifier = Modifier.size(24.dp)
@@ -282,15 +284,15 @@ fun ReportCard(
                         )
                         Text(
                             text = "%.4f, %.4f".format(
-                                report.location.latitude,
-                                report.location.longitude
+                                report.latitude,
+                                report.longitude
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Text(
-                        text = report.createdAt
+                        text = Instant.ofEpochMilli(report.createdAt)
                             .atZone(ZoneId.systemDefault())
                             .format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
                         style = MaterialTheme.typography.bodySmall,

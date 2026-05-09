@@ -7,6 +7,8 @@ import com.cityfix.domain.model.ReportStatus
 import com.cityfix.domain.usecase.GetAllReportsUseCase
 import com.cityfix.domain.usecase.GetAppSettingsUseCase
 import com.cityfix.domain.usecase.UpdateUserProfileUseCase
+import com.cityfix.domain.repository.AuthRepository
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -33,13 +35,15 @@ sealed interface ProfileEvent {
     data class EditNameChanged(val name: String) : ProfileEvent
     data class EditEmailChanged(val email: String) : ProfileEvent
     data object DismissSnackbar : ProfileEvent
+    data object Logout : ProfileEvent
 }
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val getAppSettingsUseCase: GetAppSettingsUseCase,
     private val getAllReportsUseCase: GetAllReportsUseCase,
-    private val updateUserProfileUseCase: UpdateUserProfileUseCase
+    private val updateUserProfileUseCase: UpdateUserProfileUseCase,
+    private val auth: FirebaseAuth
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -63,23 +67,31 @@ class ProfileViewModel @Inject constructor(
             is ProfileEvent.EditNameChanged -> _uiState.update { it.copy(editName = event.name) }
             is ProfileEvent.EditEmailChanged -> _uiState.update { it.copy(editEmail = event.email) }
             ProfileEvent.DismissSnackbar -> _uiState.update { it.copy(snackbarMessage = null) }
+            ProfileEvent.Logout -> {} // Handled by AuthViewModel in UI
         }
     }
 
     private fun loadData() {
         viewModelScope.launch {
+            val firebaseUser = auth.currentUser
+            val email = firebaseUser?.email.orEmpty()
+            val displayName = firebaseUser?.displayName
+            val resolvedName = displayName?.takeIf { it.isNotBlank() }
+                ?: email.substringBefore('@').takeIf { it.isNotBlank() }
+                ?: ""
+
             combine(
                 getAppSettingsUseCase(),
                 getAllReportsUseCase()
             ) { settings, reports ->
                 _uiState.update {
                     it.copy(
-                        userName = settings.userName,
-                        userEmail = settings.userEmail,
+                        userName = resolvedName,
+                        userEmail = email,
                         totalReports = reports.size,
-                        newReports = reports.count { r -> r.status == com.cityfix.domain.model.ReportStatus.NEW },
-                        inProgressReports = reports.count { r -> r.status == com.cityfix.domain.model.ReportStatus.IN_PROGRESS },
-                        resolvedReports = reports.count { r -> r.status == com.cityfix.domain.model.ReportStatus.RESOLVED },
+                        newReports = reports.count { r -> r.status == com.cityfix.domain.model.ReportStatus.NEW.name },
+                        inProgressReports = reports.count { r -> r.status == com.cityfix.domain.model.ReportStatus.IN_PROGRESS.name },
+                        resolvedReports = reports.count { r -> r.status == com.cityfix.domain.model.ReportStatus.RESOLVED.name },
                         isLoading = false
                     )
                 }
