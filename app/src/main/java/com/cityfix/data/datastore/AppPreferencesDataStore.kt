@@ -25,6 +25,7 @@ class AppPreferencesDataStore @Inject constructor(
         val DARK_MODE = booleanPreferencesKey("dark_mode")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
         val MAP_VIEW = stringPreferencesKey("map_view")
+        val LAST_SEARCH = stringPreferencesKey("last_search")
     }
 
     val isDarkMode: Flow<Boolean> = dataStore.data.map { prefs ->
@@ -49,6 +50,14 @@ class AppPreferencesDataStore @Inject constructor(
 
     suspend fun setMapView(preference: MapViewPreference) {
         dataStore.edit { prefs -> prefs[Keys.MAP_VIEW] = preference.name }
+    }
+
+    val lastSearch: Flow<String> = dataStore.data.map { prefs ->
+        prefs[Keys.LAST_SEARCH].orEmpty()
+    }
+
+    suspend fun setLastSearch(query: String) {
+        dataStore.edit { prefs -> prefs[Keys.LAST_SEARCH] = query }
     }
 }
 

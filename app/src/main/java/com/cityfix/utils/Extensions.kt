@@ -25,3 +25,18 @@ fun Instant.toRelativeTime(): String {
 }
 
 fun Double.toCoordinateString(): String = "%.6f".format(this)
+
+/**
+ * Converts an epoch-millis timestamp into a short relative phrase
+ * ("Just now", "5m ago", "3d ago", "2w ago"). Used by feed-style UI.
+ */
+fun Long.toTimeAgo(): String {
+    val diff = System.currentTimeMillis() - this
+    return when {
+        diff < 60_000 -> "Just now"
+        diff < 3_600_000 -> "${diff / 60_000}m ago"
+        diff < 86_400_000 -> "${diff / 3_600_000}h ago"
+        diff < 604_800_000 -> "${diff / 86_400_000}d ago"
+        else -> "${diff / 604_800_000}w ago"
+    }
+}

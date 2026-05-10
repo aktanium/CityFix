@@ -15,5 +15,9 @@ data class ReportDto(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val status: String = "NEW",
-    val createdAt: Long = 0L
+    val createdAt: Long = 0L,
+    val voteCount: Int = 0,
+    /** Firebase uids of users who upvoted this report. */
+    val votedUsers: List<String> = emptyList(),
+    val commentCount: Int = 0
 )

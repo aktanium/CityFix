@@ -1,6 +1,7 @@
 package com.cityfix.domain.repository
 
 import android.net.Uri
+import com.cityfix.domain.model.Comment
 import com.cityfix.domain.model.Report
 import kotlinx.coroutines.flow.Flow
 
@@ -14,4 +15,9 @@ interface ReportRepository {
     suspend fun updateReport(report: Report)
     suspend fun deleteReport(id: String)
     suspend fun refreshReports()
+    suspend fun voteReport(reportId: String, userId: String, hasVoted: Boolean)
+
+    fun getComments(reportId: String): Flow<List<Comment>>
+    suspend fun addComment(comment: Comment)
+    suspend fun deleteComment(commentId: String, reportId: String)
 }

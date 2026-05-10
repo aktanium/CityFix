@@ -68,6 +68,57 @@ fun StatusChip(
     }
 }
 
+/**
+ * String-based status badge used by the redesigned feed ReportCard.
+ * Falls back to a neutral gray pill for unknown values so a malformed
+ * Firestore document never crashes the list.
+ */
+@Composable
+fun StatusBadge(status: String) {
+    val (color, label) = when (status.uppercase()) {
+        "NEW" -> StatusNew to "New"
+        "IN_PROGRESS" -> StatusInProgress to "In Progress"
+        "RESOLVED" -> StatusResolved to "Resolved"
+        else -> Color.Gray to status
+    }
+    Surface(
+        color = color.copy(alpha = 0.15f),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Text(
+            text = label,
+            color = color,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall
+        )
+    }
+}
+
+/**
+ * Circular avatar showing the first letter of the supplied name.
+ * Used in feed cards where we don't have an avatar URL.
+ */
+@Composable
+fun AuthorAvatar(
+    name: String,
+    modifier: Modifier = Modifier,
+    size: Int = 36
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(size.dp)
+            .clip(CircleShape)
+            .background(BrandPrimary.copy(alpha = 0.15f))
+    ) {
+        Text(
+            text = name.firstOrNull()?.uppercase() ?: "?",
+            color = BrandPrimary,
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+}
+
 @Composable
 fun CategoryIcon(
     category: ReportCategory,

@@ -3,6 +3,8 @@ package com.cityfix.presentation.navigation
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -27,34 +29,43 @@ import com.cityfix.presentation.screens.report_detail.ReportDetailScreen
 import com.cityfix.presentation.screens.report_list.ReportListScreen
 import com.cityfix.presentation.screens.settings.SettingsScreen
 import com.cityfix.presentation.screens.splash.SplashScreen
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.outlined.List
+import com.cityfix.presentation.screens.stats.StatsScreen
+import com.cityfix.presentation.theme.BrandPrimary
 
 private data class BottomNavDestination(
     val route: String,
     val label: String,
     val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
+    val unselectedIcon: ImageVector,
+    /** Highlighted destinations render larger + always-tinted (for the central "Add" action). */
+    val highlighted: Boolean = false
 )
 
 private val bottomNavDestinations = listOf(
     BottomNavDestination(
         route = NavRoutes.REPORT_LIST,
-        label = "Reports",
-        selectedIcon = Icons.AutoMirrored.Filled.List,
-        unselectedIcon = Icons.AutoMirrored.Outlined.List
+        label = "Feed",
+        selectedIcon = Icons.Filled.Home,
+        unselectedIcon = Icons.Outlined.Home
+    ),
+    BottomNavDestination(
+        route = NavRoutes.ADD_REPORT,
+        label = "Add",
+        selectedIcon = Icons.Filled.AddCircle,
+        unselectedIcon = Icons.Filled.AddCircle,
+        highlighted = true
+    ),
+    BottomNavDestination(
+        route = NavRoutes.STATS,
+        label = "Stats",
+        selectedIcon = Icons.Filled.BarChart,
+        unselectedIcon = Icons.Outlined.BarChart
     ),
     BottomNavDestination(
         route = NavRoutes.PROFILE,
         label = "Profile",
         selectedIcon = Icons.Filled.Person,
         unselectedIcon = Icons.Outlined.Person
-    ),
-    BottomNavDestination(
-        route = NavRoutes.SETTINGS,
-        label = "Settings",
-        selectedIcon = Icons.Filled.Settings,
-        unselectedIcon = Icons.Outlined.Settings
     )
 )
 
@@ -94,8 +105,9 @@ fun CityFixNavHost() {
 
     val bottomBarRoutes = setOf(
         NavRoutes.REPORT_LIST,
-        NavRoutes.PROFILE,
-        NavRoutes.SETTINGS
+        NavRoutes.ADD_REPORT,
+        NavRoutes.STATS,
+        NavRoutes.PROFILE
     )
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -194,6 +206,10 @@ fun CityFixNavHost() {
             composable(NavRoutes.SETTINGS) {
                 SettingsScreen()
             }
+
+            composable(NavRoutes.STATS) {
+                StatsScreen()
+            }
         }
     }
 }
@@ -223,7 +239,10 @@ private fun CityFixBottomBar(navController: NavHostController) {
                 icon = {
                     Icon(
                         imageVector = if (isSelected) destination.selectedIcon else destination.unselectedIcon,
-                        contentDescription = destination.label
+                        contentDescription = destination.label,
+                        // The "Add" item gets a larger, brand-tinted icon to make it the visual focal point.
+                        tint = if (destination.highlighted) BrandPrimary else androidx.compose.ui.graphics.Color.Unspecified,
+                        modifier = if (destination.highlighted) Modifier.size(36.dp) else Modifier
                     )
                 },
                 label = { Text(destination.label) }

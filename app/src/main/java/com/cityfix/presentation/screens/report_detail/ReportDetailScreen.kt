@@ -1,24 +1,32 @@
 package com.cityfix.presentation.screens.report_detail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cityfix.domain.model.Comment
 import com.cityfix.domain.model.Report
 import com.cityfix.domain.model.ReportCategory
 import com.cityfix.domain.model.ReportStatus
 import com.cityfix.presentation.components.*
+import com.cityfix.presentation.theme.BrandPrimary
+import com.cityfix.utils.toTimeAgo
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.Instant
@@ -30,6 +38,8 @@ fun ReportDetailScreen(
     viewModel: ReportDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val comments by viewModel.comments.collectAsStateWithLifecycle()
+    val commentText by viewModel.commentText.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showStatusDialog by remember { mutableStateOf(false) }
@@ -103,23 +113,33 @@ fun ReportDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        when {
-            uiState.isLoading -> LoadingView(modifier = Modifier.padding(paddingValues))
-            uiState.error != null -> ErrorView(
-                message = uiState.error!!,
-                onRetry = {},
-                modifier = Modifier.padding(paddingValues)
-            )
-            uiState.report == null -> EmptyStateView(
-                title = "Report not found",
-                message = "This report may have been deleted",
-                modifier = Modifier.padding(paddingValues)
-            )
-            else -> ReportDetailContent(
-                report = uiState.report!!,
-                onUpdateStatus = { showStatusDialog = true },
-                modifier = Modifier.padding(paddingValues)
-            )
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Box(modifier = Modifier.weight(1f)) {
+                when {
+                    uiState.isLoading -> LoadingView()
+                    uiState.error != null -> ErrorView(message = uiState.error!!, onRetry = {})
+                    uiState.report == null -> EmptyStateView(
+                        title = "Report not found",
+                        message = "This report may have been deleted"
+                    )
+                    else -> ReportDetailContent(
+                        report = uiState.report!!,
+                        comments = comments,
+                        currentUserId = viewModel.currentUserId,
+                        onUpdateStatus = { showStatusDialog = true },
+                        onDeleteComment = { viewModel.deleteComment(it) }
+                    )
+                }
+            }
+
+            // Sticky comment input — only visible once the report is loaded
+            if (uiState.report != null) {
+                CommentInputBar(
+                    text = commentText,
+                    onTextChange = { viewModel.onCommentTextChange(it) },
+                    onSubmit = { viewModel.submitComment() }
+                )
+            }
         }
     }
 }
@@ -127,11 +147,13 @@ fun ReportDetailScreen(
 @Composable
 private fun ReportDetailContent(
     report: Report,
+    comments: List<Comment>,
+    currentUserId: String?,
     onUpdateStatus: () -> Unit,
-    modifier: Modifier = Modifier
+    onDeleteComment: (String) -> Unit
 ) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
@@ -156,11 +178,7 @@ private fun ReportDetailContent(
                 StatusChip(status = ReportStatus.fromName(report.status))
             }
 
-            Text(
-                text = report.title,
-                style = MaterialTheme.typography.headlineSmall
-            )
-
+            Text(text = report.title, style = MaterialTheme.typography.headlineSmall)
             Text(
                 text = report.description,
                 style = MaterialTheme.typography.bodyLarge,
@@ -173,14 +191,138 @@ private fun ReportDetailContent(
 
             Button(
                 onClick = onUpdateStatus,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.Filled.Update, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Update Status")
+            }
+
+            HorizontalDivider()
+
+            // --- Comments ---
+            Text(
+                text = "${comments.size} ${if (comments.size == 1) "Comment" else "Comments"}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        if (comments.isEmpty()) {
+            Text(
+                text = "Be the first to comment.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        } else {
+            comments.forEach { comment ->
+                CommentItem(
+                    comment = comment,
+                    currentUserId = currentUserId,
+                    onDelete = { onDeleteComment(comment.id) }
+                )
+            }
+        }
+
+        // Bottom spacer so the last comment isn't hidden by the sticky input.
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun CommentItem(
+    comment: Comment,
+    currentUserId: String?,
+    onDelete: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        // Avatar with initials
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = CircleShape,
+            color = BrandPrimary.copy(alpha = 0.15f)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = comment.authorName.take(1).uppercase().ifBlank { "?" },
+                    style = MaterialTheme.typography.labelLarge,
+                    color = BrandPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = comment.authorName,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = comment.createdAt.toTimeAgo(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
+            }
+            Spacer(Modifier.height(2.dp))
+            Text(text = comment.text, style = MaterialTheme.typography.bodyMedium)
+        }
+        if (comment.userId == currentUserId && currentUserId != null) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = "Delete comment",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommentInputBar(
+    text: String,
+    onTextChange: (String) -> Unit,
+    onSubmit: () -> Unit
+) {
+    Surface(
+        tonalElevation = 4.dp,
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Add a comment…") },
+                maxLines = 3,
+                shape = RoundedCornerShape(24.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            IconButton(
+                onClick = onSubmit,
+                enabled = text.isNotBlank()
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Send",
+                    tint = if (text.isNotBlank()) BrandPrimary else Color.Gray
+                )
             }
         }
     }
