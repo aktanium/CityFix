@@ -3,8 +3,11 @@ package com.cityfix.presentation.screens.report_detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cityfix.domain.model.Comment
 import com.cityfix.domain.model.Report
 import com.cityfix.domain.model.ReportStatus
+import com.cityfix.domain.repository.AuthRepository
+import com.cityfix.domain.repository.ReportRepository
 import com.cityfix.domain.usecase.DeleteReportUseCase
 import com.cityfix.domain.usecase.GetReportByIdUseCase
 import com.cityfix.domain.usecase.UpdateReportStatusUseCase
@@ -33,7 +36,9 @@ class ReportDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getReportByIdUseCase: GetReportByIdUseCase,
     private val updateReportStatusUseCase: UpdateReportStatusUseCase,
-    private val deleteReportUseCase: DeleteReportUseCase
+    private val deleteReportUseCase: DeleteReportUseCase,
+    private val reportRepository: ReportRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val reportId: String = checkNotNull(savedStateHandle[NavArgs.REPORT_ID])
@@ -41,8 +46,18 @@ class ReportDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ReportDetailUiState())
     val uiState: StateFlow<ReportDetailUiState> = _uiState.asStateFlow()
 
+    private val _comments = MutableStateFlow<List<Comment>>(emptyList())
+    val comments: StateFlow<List<Comment>> = _comments.asStateFlow()
+
+    private val _commentText = MutableStateFlow("")
+    val commentText: StateFlow<String> = _commentText.asStateFlow()
+
+    /** Exposed for the screen so it can decide which comments show a delete button. */
+    val currentUserId: String? get() = authRepository.currentUserId
+
     init {
         observeReport()
+        observeComments()
     }
 
     fun onEvent(event: ReportDetailEvent) {
@@ -53,6 +68,50 @@ class ReportDetailViewModel @Inject constructor(
         }
     }
 
+    fun onCommentTextChange(text: String) {
+        _commentText.value = text
+    }
+
+    fun submitComment() {
+        val text = _commentText.value.trim()
+        if (text.isEmpty()) return
+        viewModelScope.launch {
+            val userId = authRepository.currentUserId ?: run {
+                _uiState.update { it.copy(snackbarMessage = "Sign in to comment") }
+                return@launch
+            }
+            val authorName = authRepository.currentUser.first()
+                ?.displayName
+                ?.takeIf { it.isNotBlank() }
+                ?: "Anonymous"
+            val comment = Comment(
+                reportId = reportId,
+                userId = userId,
+                authorName = authorName,
+                text = text,
+                createdAt = System.currentTimeMillis()
+            )
+            runCatching { reportRepository.addComment(comment) }
+                .onSuccess { _commentText.value = "" }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(snackbarMessage = e.message ?: "Failed to post comment")
+                    }
+                }
+        }
+    }
+
+    fun deleteComment(commentId: String) {
+        viewModelScope.launch {
+            runCatching { reportRepository.deleteComment(commentId, reportId) }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(snackbarMessage = e.message ?: "Failed to delete comment")
+                    }
+                }
+        }
+    }
+
     private fun observeReport() {
         viewModelScope.launch {
             getReportByIdUseCase(reportId)
@@ -60,6 +119,14 @@ class ReportDetailViewModel @Inject constructor(
                 .collect { report ->
                     _uiState.update { it.copy(report = report, isLoading = false) }
                 }
+        }
+    }
+
+    private fun observeComments() {
+        viewModelScope.launch {
+            reportRepository.getComments(reportId)
+                .catch { /* surface as snackbar but don't block the report itself */ }
+                .collect { _comments.value = it }
         }
     }
 

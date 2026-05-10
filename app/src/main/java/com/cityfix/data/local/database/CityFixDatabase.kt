@@ -7,7 +7,7 @@ import com.cityfix.data.local.entity.ReportEntity
 
 @Database(
     entities = [ReportEntity::class],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
 abstract class CityFixDatabase : RoomDatabase() {

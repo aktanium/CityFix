@@ -61,3 +61,15 @@ class RefreshReportsUseCase @Inject constructor(
         repository.refreshReports()
     }
 }
+
+class VoteReportUseCase @Inject constructor(
+    private val repository: ReportRepository
+) {
+    suspend operator fun invoke(
+        reportId: String,
+        userId: String,
+        hasVoted: Boolean
+    ): Result<Unit> = runCatching {
+        repository.voteReport(reportId, userId, hasVoted)
+    }
+}

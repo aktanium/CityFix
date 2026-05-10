@@ -8,19 +8,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-
-// Brand Colors
-val PrimaryBlue = Color(0xFF1565C0)
-val PrimaryBlueDark = Color(0xFF003C8F)
-val SecondaryTeal = Color(0xFF00897B)
-val TertiaryAmber = Color(0xFFF57C00)
-
-val StatusNew = Color(0xFF1565C0)
-val StatusInProgress = Color(0xFFF57C00)
-val StatusResolved = Color(0xFF2E7D32)
 
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryBlue,
@@ -85,7 +74,9 @@ fun CityFixTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
+            // Edge-to-edge — replaces the deprecated Window.statusBarColor setter.
+            // The status bar tint follows the system; we just flip the icon contrast.
+            WindowCompat.setDecorFitsSystemWindows(window, false)
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

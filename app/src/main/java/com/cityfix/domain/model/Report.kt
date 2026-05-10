@@ -13,7 +13,12 @@ data class Report(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val status: String = "NEW",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val voteCount: Int = 0,
+    /** Computed at the data-layer boundary from the current user vs the report's voter list. */
+    val votedByMe: Boolean = false,
+    /** Denormalised count of comments on this report (maintained server-side via FieldValue.increment). */
+    val commentCount: Int = 0
 )
 
 data class GeoLocation(

@@ -9,4 +9,7 @@ interface SettingsRepository {
     suspend fun setDarkMode(enabled: Boolean)
     suspend fun setNotificationsEnabled(enabled: Boolean)
     suspend fun setMapView(preference: MapViewPreference)
+
+    suspend fun getLastSearch(): String
+    suspend fun saveLastSearch(query: String)
 }

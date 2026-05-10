@@ -9,20 +9,11 @@ object NavRoutes {
     const val REPORT_DETAIL = "report_detail/{${NavArgs.REPORT_ID}}"
     const val PROFILE = "profile"
     const val SETTINGS = "settings"
+    const val STATS = "stats"
 
     fun reportDetail(reportId: String) = "report_detail/$reportId"
 }
 
 object NavArgs {
     const val REPORT_ID = "reportId"
-}
-
-enum class BottomNavItem(
-    val route: String,
-    val label: String,
-    val iconRes: String
-) {
-    REPORTS(NavRoutes.REPORT_LIST, "Reports", "list"),
-    PROFILE(NavRoutes.PROFILE, "Profile", "person"),
-    SETTINGS(NavRoutes.SETTINGS, "Settings", "settings")
 }

@@ -6,6 +6,7 @@ import com.cityfix.domain.model.AppSettings
 import com.cityfix.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,4 +35,10 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setMapView(preference: MapViewPreference) =
         dataStore.setMapView(preference)
+
+    override suspend fun getLastSearch(): String =
+        dataStore.lastSearch.first()
+
+    override suspend fun saveLastSearch(query: String) =
+        dataStore.setLastSearch(query)
 }
