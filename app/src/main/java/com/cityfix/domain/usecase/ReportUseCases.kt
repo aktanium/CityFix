@@ -53,3 +53,11 @@ class DeleteReportUseCase @Inject constructor(
         repository.deleteReport(id)
     }
 }
+
+class RefreshReportsUseCase @Inject constructor(
+    private val repository: ReportRepository
+) {
+    suspend operator fun invoke(): Result<Unit> = runCatching {
+        repository.refreshReports()
+    }
+}

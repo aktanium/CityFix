@@ -17,9 +17,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.SubcomposeAsyncImage
 import com.cityfix.domain.model.ReportCategory
 import com.cityfix.domain.model.ReportStatus
 import com.cityfix.presentation.theme.*
@@ -229,6 +231,70 @@ fun StatCard(
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+/**
+ * Renders the report photo from a local content:// or file:// URI.
+ *
+ * Images are stored locally only (Firebase Storage requires a paid plan), so the
+ * URI only resolves on the device that created the report. On other devices —
+ * or when the source file has been removed — we show a placeholder.
+ */
+@Composable
+fun ReportImage(
+    uri: String,
+    contentDescription: String?,
+    modifier: Modifier = Modifier
+) {
+    if (uri.isBlank()) {
+        ImageUnavailablePlaceholder(modifier = modifier)
+        return
+    }
+    SubcomposeAsyncImage(
+        model = uri,
+        contentDescription = contentDescription,
+        contentScale = ContentScale.Crop,
+        modifier = modifier,
+        loading = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(28.dp),
+                    strokeWidth = 2.dp
+                )
+            }
+        },
+        error = { ImageUnavailablePlaceholder(modifier = Modifier.fillMaxSize()) }
+    )
+}
+
+@Composable
+private fun ImageUnavailablePlaceholder(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.BrokenImage,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Image unavailable",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

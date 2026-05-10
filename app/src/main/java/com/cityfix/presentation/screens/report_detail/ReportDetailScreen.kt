@@ -12,11 +12,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.cityfix.domain.model.Report
 import com.cityfix.domain.model.ReportCategory
 import com.cityfix.domain.model.ReportStatus
@@ -137,16 +135,13 @@ private fun ReportDetailContent(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        report.imageUri?.let { uri ->
-            AsyncImage(
-                model = uri,
-                contentDescription = "Report image",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp)
-            )
-        }
+        ReportImage(
+            uri = report.imageUri,
+            contentDescription = "Report image",
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp)
+        )
 
         Column(
             modifier = Modifier.padding(16.dp),

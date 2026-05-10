@@ -3,11 +3,11 @@ package com.cityfix.data.local.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.cityfix.data.local.dao.ReportDao
-import com.cityfix.domain.model.Report
+import com.cityfix.data.local.entity.ReportEntity
 
 @Database(
-    entities = [Report::class],
-    version = 5,
+    entities = [ReportEntity::class],
+    version = 6,
     exportSchema = false
 )
 abstract class CityFixDatabase : RoomDatabase() {
