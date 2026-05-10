@@ -13,4 +13,5 @@ interface ReportRepository {
     suspend fun createReport(report: Report, imageUri: Uri?): String
     suspend fun updateReport(report: Report)
     suspend fun deleteReport(id: String)
+    suspend fun refreshReports()
 }

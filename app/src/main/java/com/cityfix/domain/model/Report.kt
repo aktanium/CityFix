@@ -1,14 +1,9 @@
 package com.cityfix.domain.model
 
-import java.time.Instant
-
-import androidx.room.Entity
-import androidx.room.PrimaryKey
 import java.util.UUID
 
-@Entity(tableName = "reports")
 data class Report(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val id: String = UUID.randomUUID().toString(),
     val userId: String = "",
     val authorEmail: String = "",
     val title: String = "",

@@ -23,7 +23,9 @@ object DatabaseModule {
             CityFixDatabase::class.java,
             CityFixDatabase.DATABASE_NAME
         )
-            // Course project: drop & recreate on schema change rather than maintain migrations.
+            // Course project: drop & recreate on any schema change rather than maintain migrations.
+            // The phone may have a higher on-disk version than the current code; this lets the
+            // app come up cleanly instead of crashing with "migration from N to M not found".
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 

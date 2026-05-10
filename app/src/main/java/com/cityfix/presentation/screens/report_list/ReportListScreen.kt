@@ -9,16 +9,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.cityfix.domain.model.Report
 import com.cityfix.domain.model.ReportCategory
 import com.cityfix.domain.model.ReportStatus
@@ -104,7 +103,9 @@ fun ReportListScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        Box(
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = { viewModel.onEvent(ReportListEvent.Refresh) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
@@ -200,17 +201,14 @@ fun ReportCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            report.imageUri?.let { uri ->
-                AsyncImage(
-                    model = uri,
-                    contentDescription = "Report image",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                )
-            }
+            ReportImage(
+                uri = report.imageUri,
+                contentDescription = "Report image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            )
 
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(

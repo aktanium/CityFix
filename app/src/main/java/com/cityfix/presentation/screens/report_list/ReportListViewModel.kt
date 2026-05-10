@@ -7,6 +7,7 @@ import com.cityfix.domain.model.ReportCategory
 import com.cityfix.domain.model.ReportStatus
 import com.cityfix.domain.usecase.DeleteReportUseCase
 import com.cityfix.domain.usecase.GetFilteredReportsUseCase
+import com.cityfix.domain.usecase.RefreshReportsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -16,6 +17,7 @@ import javax.inject.Inject
 data class ReportListUiState(
     val reports: List<Report> = emptyList(),
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val error: String? = null,
     val selectedCategory: ReportCategory? = null,
     val selectedStatus: ReportStatus? = null,
@@ -31,12 +33,14 @@ sealed interface ReportListEvent {
     data object HideFilterSheet : ReportListEvent
     data object ClearFilters : ReportListEvent
     data object DismissSnackbar : ReportListEvent
+    data object Refresh : ReportListEvent
 }
 
 @HiltViewModel
 class ReportListViewModel @Inject constructor(
     private val getFilteredReportsUseCase: GetFilteredReportsUseCase,
-    private val deleteReportUseCase: DeleteReportUseCase
+    private val deleteReportUseCase: DeleteReportUseCase,
+    private val refreshReportsUseCase: RefreshReportsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReportListUiState())
@@ -57,6 +61,20 @@ class ReportListViewModel @Inject constructor(
             ReportListEvent.HideFilterSheet -> _uiState.update { it.copy(isFilterSheetVisible = false) }
             ReportListEvent.ClearFilters -> applyFilter(null, null)
             ReportListEvent.DismissSnackbar -> _uiState.update { it.copy(snackbarMessage = null) }
+            ReportListEvent.Refresh -> refresh()
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            refreshReportsUseCase()
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(snackbarMessage = e.message ?: "Failed to refresh")
+                    }
+                }
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 
